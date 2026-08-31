@@ -2,7 +2,7 @@
 
 The blueprint gallery: re-instantiation patterns abstracted from the psychic-crew program, each
 carrying what / why / when / where-proven / how. Born 2026-08-27 under the parent HELIX
-program's SIDE-4 gate. PRIVATE at creation. This is the repo a session reads BEFORE rebuilding a
+program's SIDE-4 gate. Private at creation; public since the out-of-band flip ratified at S0-RECONCILE (see GATES.md). This is the repo a session reads BEFORE rebuilding a
 pattern elsewhere — the map, not the territory.
 
 ## Binding rules
@@ -14,3 +14,6 @@ pattern elsewhere — the map, not the territory.
 - **Evidence labels** ([E]/[I]/[S]) on load-bearing claims; weakest claim flagged per deliverable.
 - **Gate law.** Exact operator tokens in `GATES.md`; commits fronted by `scripts/gate-guard.sh`.
 - **One risk vocabulary:** low | med | high | crit. **No absolute machine paths. Zero credentials.**
+
+Canonical author identity (S0-RECONCILE, 2026-08-31): **Nathan Lim** — LICENSE copyright
+lines cite this form estate-wide; the GitHub handle is an address, not a copyright holder.

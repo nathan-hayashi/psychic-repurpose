@@ -5,7 +5,8 @@ the psychic-crew program before it was allowed to become advice here. Every blue
 five questions: What is it, Why does it exist (the defect class it kills), When to reach for it,
 where it is Proven, and How to re-instantiate it step by step.
 
-**PRIVATE at creation.** Publication is its own future gate decision.
+**PUBLIC** since an out-of-band flip after creation (flip date unrecorded — gh pushedAt matches
+the birth commit; ratified 2026-08-31, see the VIS-RECONCILE ledger row). Private at creation.
 
 | Blueprint | Kills |
 |---|---|
