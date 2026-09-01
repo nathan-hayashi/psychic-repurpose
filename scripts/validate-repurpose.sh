@@ -82,7 +82,7 @@ for r in $KNOWN; do
 done
 
 echo "== C. README count bindings (every-occurrence — the head-1 form retired at RPG-1) =="
-rvals=$(grep -oE '\*\*[0-9]+ blueprints\*\*' README.md | grep -oE '[0-9]+' | sort -u)
+rvals=$(grep -oE '\*\*[0-9]+ blueprints\*\*|badge/blueprints-[0-9]+' README.md | grep -oE '[0-9]+' | sort -u)
 rvn=$(grep -c . <<<"$rvals"); [[ "$rvn" =~ ^[0-9]+$ ]] || rvn=0
 { [ "$rvn" -eq 1 ] && [ "$rvals" = "$bcount" ]; } \
   && ok "README blueprint count bound every-occurrence ($rvals == tree $bcount)" \
@@ -112,7 +112,7 @@ ncls=$(cut -f2 "$fmpairs" | sort -u | grep -c .)
 [[ "$ncls" =~ ^[0-9]+$ ]] || ncls=0
 [ "$ncls" -eq "$bcount" ] && ok "slug bijection: $ncls distinct defect classes for $bcount blueprints" \
   || no "slug bijection broken: $ncls distinct classes vs $bcount blueprints"
-rkills=$(grep -E '^\| `[a-z-]+` \| `[a-z-]+` — ' README.md | awk -F'`' '{print $2 "\t" $4}' | sort)
+rkills=$(grep -E '^\| \[`[a-z-]+`\]\(blueprints/[a-z-]+\.md\) \| `[a-z-]+` — ' README.md | awk -F'`' '{print $2 "\t" $4}' | sort)
 nrk=$(grep -c . <<<"$rkills"); [[ "$nrk" =~ ^[0-9]+$ ]] || nrk=0
 [ "$nrk" -eq "$bcount" ] && ok "README Kills table carries $nrk slug rows" \
   || no "README Kills slug rows: $nrk (want $bcount)"
@@ -212,6 +212,20 @@ pedge=$(awk '/^# PULL-EDGES v1$/{f=1;next} f&&/^```/{exit} f&&NF' "$pe" | sort)
 [ "$pedge" != "$fadj" ] && ok "control fires: a dropped edge breaks adjacency set-equality" \
   || no "dropped-edge control DID NOT fire"
 rm -f "$pb" "$pe" "$fmpairs" "$fmadj"
+
+
+echo "== C4. the rendered graph == the index edges (S5) =="
+rmer=$(awk '/^```mermaid$/{f=1;next} f&&/^```/{exit} f' README.md | grep -oE '[a-z-]+ --> [a-z-]+' | sed -E 's/ --> /\t/' | sort)
+rnm=$(grep -c . <<<"$rmer"); [[ "$rnm" =~ ^[0-9]+$ ]] || rnm=0
+[ "$rnm" -ge 5 ] && ok "rendered graph non-vacuous ($rnm edges)" || no "rendered graph vacuous: $rnm edges"
+ridx=$(awk '/^# PULL-EDGES v1$/{f=1;next} f&&/^```/{exit} f&&NF' docs/PULL-INDEX.md | awk -F'\t' '$2!="none"{n=split($2,a,","); for(i=1;i<=n;i++) print $1 "\t" a[i]}' | sort)
+[ "$rmer" = "$ridx" ] && ok "rendered graph edges == index PULL-EDGES, set-equal both ways" \
+  || no "rendered graph DRIFTED from the index: $(comm -3 <(printf '%s\n' "$rmer") <(printf '%s\n' "$ridx") | head -2 | tr '\n' ' ')"
+gcp=$(mktemp); grep -v 'pair-edit-delta-zero --> count-binding' README.md > "$gcp"
+gme=$(awk '/^```mermaid$/{f=1;next} f&&/^```/{exit} f' "$gcp" | grep -oE '[a-z-]+ --> [a-z-]+' | sed -E 's/ --> /\t/' | sort)
+[ "$gme" != "$ridx" ] && ok "control fires: a dropped rendered edge is seen by the comparator" \
+  || no "rendered-graph control DID NOT fire"
+rm -f "$gcp"
 
 echo "== D. hygiene =="
 abshits=$(git ls-files -z | xargs -0 grep -lF -- "$ABS" 2>/dev/null)

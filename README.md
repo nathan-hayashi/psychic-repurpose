@@ -1,5 +1,7 @@
 # psychic-repurpose
 
+![blueprints](https://img.shields.io/badge/blueprints-11-2f6f4f)
+
 The blueprint gallery — **11 blueprints**, each a pattern that ran as enforced law somewhere in
 the psychic-crew program before it was allowed to become advice here. Every blueprint answers
 five questions: What is it, Why does it exist (the defect class it kills), When to reach for it,
@@ -12,17 +14,42 @@ the birth commit; ratified 2026-08-31, see the VIS-RECONCILE ledger row). Privat
 
 | Blueprint | Kills |
 |---|---|
-| `gate-machine` | `sentiment-approval` — approval inferred from sentiment |
-| `count-binding` | `unbound-figure-drift` — documented figures drifting from live totals |
-| `negative-control` | `never-seen-failing` — checkers never seen failing (and controls that pass vacuously) |
-| `commit-straddle` | `green-early-or-stale` — the green-early-or-stale-forever dilemma at gated commits |
-| `pair-edit-delta-zero` | `dual-doc-divergence` — two documents describing one structure, diverging |
-| `witness-manifest` | `untracked-state-drift` — untracked working-state drift between commits |
-| `vendored-vocabulary` | `brittle-or-silent-coupling` — cross-repo coupling that is either brittle or silent |
-| `unknown-fields` | `guessed-in-requirements` — complete-looking artifacts hiding guessed-in requirements |
-| `observer-fence` | `measurement-mutates` — measurement that mutates the state it measures |
-| `assembled-needles` | `scanner-contains-prey` — scanners containing their own prey; docs that trip deny rules |
-| `explainer-epoch` | `opaque-gate-change` — gated changes only their author can read |
+| [`gate-machine`](blueprints/gate-machine.md) | `sentiment-approval` — approval inferred from sentiment |
+| [`count-binding`](blueprints/count-binding.md) | `unbound-figure-drift` — documented figures drifting from live totals |
+| [`negative-control`](blueprints/negative-control.md) | `never-seen-failing` — checkers never seen failing (and controls that pass vacuously) |
+| [`commit-straddle`](blueprints/commit-straddle.md) | `green-early-or-stale` — the green-early-or-stale-forever dilemma at gated commits |
+| [`pair-edit-delta-zero`](blueprints/pair-edit-delta-zero.md) | `dual-doc-divergence` — two documents describing one structure, diverging |
+| [`witness-manifest`](blueprints/witness-manifest.md) | `untracked-state-drift` — untracked working-state drift between commits |
+| [`vendored-vocabulary`](blueprints/vendored-vocabulary.md) | `brittle-or-silent-coupling` — cross-repo coupling that is either brittle or silent |
+| [`unknown-fields`](blueprints/unknown-fields.md) | `guessed-in-requirements` — complete-looking artifacts hiding guessed-in requirements |
+| [`observer-fence`](blueprints/observer-fence.md) | `measurement-mutates` — measurement that mutates the state it measures |
+| [`assembled-needles`](blueprints/assembled-needles.md) | `scanner-contains-prey` — scanners containing their own prey; docs that trip deny rules |
+| [`explainer-epoch`](blueprints/explainer-epoch.md) | `opaque-gate-change` — gated changes only their author can read |
+
+## The graph, rendered
+
+Derived from the same frontmatter the index projects — the suite re-derives these edges from
+the PULL-EDGES block in `docs/PULL-INDEX.md` and fails this picture on drift (never a third
+hand-copy). An arrow reads "requires".
+
+```mermaid
+graph TD
+  commit-straddle --> gate-machine
+  explainer-epoch --> gate-machine
+  count-binding --> negative-control
+  vendored-vocabulary --> negative-control
+  witness-manifest --> negative-control
+  pair-edit-delta-zero --> count-binding
+  assembled-needles
+  observer-fence
+  unknown-fields
+```
+
+## What is not asserted
+
+Trigger matching is judgment, and nothing in THIS repo proves a consumer cited a path rather
+than inlining a body — both declared in `docs/PULL-PROTOCOL.md` (the mechanical path-not-body
+bound lives in the parent's intake pin). The suite binds everything else it names.
 
 ## Use
 
