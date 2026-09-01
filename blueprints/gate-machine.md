@@ -1,3 +1,11 @@
+---
+id: gate-machine
+defect_class: sentiment-approval
+triggers: phase advancement exists; approval is currently inferred from chat sentiment; multiple sessions or writers share one ledger
+requires: none
+proven_in: psychic-crew, psychic-crew-lite, psychic-templates, psychic-sidekick, psychic-plugins
+---
+
 # gate-machine — exact-token approval gates
 
 ## What

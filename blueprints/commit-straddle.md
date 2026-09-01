@@ -1,3 +1,11 @@
+---
+id: commit-straddle
+defect_class: green-early-or-stale
+triggers: a suite asserts its own commit count or head; the gated commit must contain the ledger row approving it; totals change in the closing commit itself
+requires: gate-machine
+proven_in: psychic-crew
+---
+
 # commit-straddle — pre-token reds that name post-commit truths
 
 ## What

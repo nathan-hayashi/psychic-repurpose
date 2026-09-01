@@ -1,3 +1,11 @@
+---
+id: unknown-fields
+defect_class: guessed-in-requirements
+triggers: an artifact looks complete but some fields were guessed; blanks silently become plausible values; requirements arrive unstructured
+requires: none
+proven_in: psychic-templates, psychic-sidekick, psychic-plugins, psychic-crew
+---
+
 # unknown-fields — blanks stay UNKNOWN, listed, never guessed into existence
 
 ## What

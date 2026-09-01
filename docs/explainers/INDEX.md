@@ -17,3 +17,4 @@ this repo gates rarely, and the epoch row may legitimately be the last row.
 ## Explainers
 
 - [S0-RECONCILE](S0-RECONCILE.md) — license, identity, visibility truth, and this discipline itself.
+- [RPG-1](RPG-1.md) — the gallery becomes a graph: frontmatter source, projected index, pull protocol.

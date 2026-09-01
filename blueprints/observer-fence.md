@@ -1,3 +1,11 @@
+---
+id: observer-fence
+defect_class: measurement-mutates
+triggers: a metrics or census step edits what it measures; running the suite dirties the tree; a check regenerates a tracked file
+requires: none
+proven_in: psychic-crew
+---
+
 # observer-fence — measurement that mutates state is budgeted or fenced, never ambient
 
 ## What

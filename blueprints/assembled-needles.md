@@ -1,3 +1,11 @@
+---
+id: assembled-needles
+defect_class: scanner-contains-prey
+triggers: a scanner would contain its own prey; prose documenting a denied shape trips the denier; needles and fixtures share bytes with live guards
+requires: none
+proven_in: psychic-crew, psychic-crew-lite
+---
+
 # assembled-needles — a scanner never contains the pattern it hunts
 
 ## What

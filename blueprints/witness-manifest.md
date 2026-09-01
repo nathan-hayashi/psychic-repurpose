@@ -1,3 +1,11 @@
+---
+id: witness-manifest
+defect_class: untracked-state-drift
+triggers: untracked working files carry state between commits; a scratch directory feeds a tracked artifact; drift would surface only at clone time
+requires: negative-control
+proven_in: psychic-crew-lite
+---
+
 # witness-manifest — tracked files carry a stamped inventory that goes STALE on edit
 
 ## What

@@ -1,3 +1,11 @@
+---
+id: negative-control
+defect_class: never-seen-failing
+triggers: a checker has never been seen failing; a passing control could be passing vacuously; a guard needle set just changed
+requires: none
+proven_in: psychic-crew, psychic-crew-lite, psychic-templates, psychic-sidekick, psychic-plugins
+---
+
 # negative-control — checks proven to fire, with existence asserted first
 
 ## What

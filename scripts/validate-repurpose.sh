@@ -20,6 +20,34 @@ chk_sections () { # $1=file → 0 iff all five sections present
   done
   return 0
 }
+chk_frontmatter () { # $1=file $2=expected-stem → 0 iff frontmatter sound; reasons on stdout
+  local f="$1" stem="$2" fm fid fcl ftr frq fpv sec bad="" t r
+  fm=$(awk '/^---$/{c++;next} c==1{print} c>=2{exit}' "$f")
+  [ -n "$fm" ] || { echo " no-frontmatter"; return 1; }
+  fid=$(sed -n 's/^id: //p' <<<"$fm")
+  [ "$fid" = "$stem" ] || bad="$bad id!=stem"
+  fcl=$(sed -n 's/^defect_class: //p' <<<"$fm")
+  [ -n "$fcl" ] || bad="$bad no-defect-class"
+  ftr=$(sed -n 's/^triggers: //p' <<<"$fm")
+  t=$(awk -F';' '{print NF}' <<<"$ftr"); [[ "$t" =~ ^[0-9]+$ ]] || t=0
+  [ "$t" -ge 3 ] || bad="$bad triggers<3"
+  frq=$(sed -n 's/^requires: //p' <<<"$fm")
+  [ -n "$frq" ] || bad="$bad no-requires-line"
+  if [ -n "$frq" ] && [ "$frq" != "none" ]; then
+    for r in $(tr ',' ' ' <<<"$frq"); do
+      [ -f "blueprints/$r.md" ] || bad="$bad requires-missing:$r"
+    done
+  fi
+  fpv=$(sed -n 's/^proven_in: //p' <<<"$fm")
+  [ -n "$fpv" ] || bad="$bad no-proven-in"
+  sec=$(awk '/^## Proven in$/{f=1;next} f&&/^## /{exit} f' "$f")
+  for r in $(tr ',' ' ' <<<"$fpv"); do
+    case " $KNOWN " in *" $r "*) : ;; *) bad="$bad unknown-repo:$r" ;; esac
+    grep -qF "$r" <<<"$sec" || bad="$bad fm-repo-not-in-prose:$r"
+  done
+  [ -z "$bad" ] && return 0
+  echo "$bad"; return 1
+}
 chk_provenance () { # $1=file → 0 iff the Proven-in section names at least one program repo
   local f="$1" sec r
   [ -f "$f" ] || return 1
@@ -53,11 +81,137 @@ for r in $KNOWN; do
   [ "$hits" -ge 1 ] && ok "cited by $hits blueprint(s): $r" || no "no blueprint cites $r"
 done
 
-echo "== C. README count binding =="
-rn=$(grep -oE '\*\*[0-9]+ blueprints\*\*' README.md | head -1 | grep -oE '[0-9]+')
-[[ "$rn" =~ ^[0-9]+$ ]] || rn=-1
-[ "$rn" -eq "$bcount" ] && ok "README blueprint count ($rn) matches the tree ($bcount)" \
-  || no "README says $rn blueprints, tree has $bcount"
+echo "== C. README count bindings (every-occurrence — the head-1 form retired at RPG-1) =="
+rvals=$(grep -oE '\*\*[0-9]+ blueprints\*\*' README.md | grep -oE '[0-9]+' | sort -u)
+rvn=$(grep -c . <<<"$rvals"); [[ "$rvn" =~ ^[0-9]+$ ]] || rvn=0
+{ [ "$rvn" -eq 1 ] && [ "$rvals" = "$bcount" ]; } \
+  && ok "README blueprint count bound every-occurrence ($rvals == tree $bcount)" \
+  || no "README blueprint binding broken: distinct values [$(tr '\n' ' ' <<<"$rvals")] vs tree $bcount"
+rcp=$(mktemp); cat README.md > "$rcp"; printf '\n**99 blueprints**\n' >> "$rcp"
+rv2=$(grep -oE '\*\*[0-9]+ blueprints\*\*' "$rcp" | grep -oE '[0-9]+' | sort -u | grep -c .)
+[[ "$rv2" =~ ^[0-9]+$ ]] || rv2=0
+[ "$rv2" -ge 2 ] && ok "control fires: a planted conflicting count reaches the every-occurrence extractor" \
+  || no "every-occurrence control DID NOT fire"
+rm -f "$rcp"
+
+
+echo "== C2. the graph source: frontmatter integrity (RPG-1) =="
+fmpairs=$(mktemp); fmadj=$(mktemp)
+for f in blueprints/*.md; do
+  stem=$(basename "$f" .md)
+  if msg=$(chk_frontmatter "$f" "$stem"); then
+    ok "frontmatter sound: $stem"
+  else
+    no "frontmatter broken in $stem:$msg"
+  fi
+  fm=$(awk '/^---$/{c++;next} c==1{print} c>=2{exit}' "$f")
+  printf '%s\t%s\n' "$stem" "$(sed -n 's/^defect_class: //p' <<<"$fm")" >> "$fmpairs"
+  printf '%s\t%s\n' "$stem" "$(sed -n 's/^requires: //p' <<<"$fm")" >> "$fmadj"
+done
+ncls=$(cut -f2 "$fmpairs" | sort -u | grep -c .)
+[[ "$ncls" =~ ^[0-9]+$ ]] || ncls=0
+[ "$ncls" -eq "$bcount" ] && ok "slug bijection: $ncls distinct defect classes for $bcount blueprints" \
+  || no "slug bijection broken: $ncls distinct classes vs $bcount blueprints"
+rkills=$(grep -E '^\| `[a-z-]+` \| `[a-z-]+` — ' README.md | awk -F'`' '{print $2 "\t" $4}' | sort)
+nrk=$(grep -c . <<<"$rkills"); [[ "$nrk" =~ ^[0-9]+$ ]] || nrk=0
+[ "$nrk" -eq "$bcount" ] && ok "README Kills table carries $nrk slug rows" \
+  || no "README Kills slug rows: $nrk (want $bcount)"
+fmsorted=$(sort "$fmpairs")
+if [ "$rkills" = "$fmsorted" ]; then
+  ok "Kills table == frontmatter (id,slug) pairs, literal both ways"
+else
+  no "Kills/frontmatter divergence: $(comm -3 <(printf '%s\n' "$rkills") <(printf '%s\n' "$fmsorted") | head -2 | tr '\n' ' ')"
+fi
+acy=$(awk -F'\t' '
+  { id[$1]=1; req[$1]=$2; n++ }
+  END {
+    peeled=0; progressed=1
+    while (progressed) {
+      progressed=0
+      for (x in id) {
+        if (done[x]) continue
+        okp=1
+        if (req[x] != "none" && req[x] != "") {
+          m=split(req[x], a, ","); for (i=1;i<=m;i++) { if (!done[a[i]]) okp=0 }
+        }
+        if (okp) { done[x]=1; peeled++; progressed=1 }
+      }
+    }
+    if (peeled==n) print "ACYCLIC"; else print "CYCLE"
+  }' "$fmadj")
+[ "$acy" = "ACYCLIC" ] && ok "requires graph is acyclic (Kahn peel over frontmatter)" \
+  || no "requires graph has a CYCLE"
+
+echo "== C3. the index: a faithful projection (RPG-1) =="
+IDX=docs/PULL-INDEX.md
+[ -f "$IDX" ] && ok "exists: $IDX" || no "missing: $IDX"
+caps=$(awk '/^# PULL-INDEX v1$/{f=1;next} f&&/^```/{exit} f&&NF' "$IDX")
+edges=$(awk '/^# PULL-EDGES v1$/{f=1;next} f&&/^```/{exit} f&&NF' "$IDX")
+ncap=$(grep -c . <<<"$caps"); [[ "$ncap" =~ ^[0-9]+$ ]] || ncap=0
+nedg=$(grep -c . <<<"$edges"); [[ "$nedg" =~ ^[0-9]+$ ]] || nedg=0
+[ "$ncap" -ge "$bcount" ] && ok "capability block non-vacuous ($ncap rows >= $bcount)" \
+  || no "capability block vacuous: $ncap rows (want >= $bcount)"
+[ "$nedg" -ge "$bcount" ] && ok "edges block non-vacuous ($nedg rows >= $bcount)" \
+  || no "edges block vacuous: $nedg rows (want >= $bcount)"
+icap=$(printf '%s\n' "$caps" | awk -F'\t' '{print $1 "\t" $2}' | sort)
+[ "$icap" = "$fmsorted" ] && ok "index (id,class) == frontmatter, set-equal both ways" \
+  || no "index (id,class) diverges from frontmatter"
+iadj=$(printf '%s\n' "$edges" | sort); fadj=$(sort "$fmadj")
+[ "$iadj" = "$fadj" ] && ok "index adjacency == frontmatter requires, set-equal both ways" \
+  || no "index adjacency diverges from frontmatter requires"
+cloerr=$(printf '%s\n' "$caps" | awk -F'\t' '
+  FNR==NR { req[$1]=$2; next }
+  {
+    x=$1; want=$5; out=""; frontier=req[x]; expc=""
+    if (frontier=="none" || frontier=="") { expc="none" }
+    else {
+      changed=1
+      while (changed) {
+        changed=0; m=split(frontier, a, ",")
+        for (i=1;i<=m;i++) {
+          it=a[i]; if (it=="" || it=="none") continue
+          if (index("," out ",", "," it ",")==0) {
+            out=(out=="" ? it : out "," it)
+            if (req[it]!="none" && req[it]!="") { frontier=frontier "," req[it]; changed=1 }
+          }
+        }
+      }
+      expc=out
+    }
+    if (index("," expc ",", "," x ",")>0) { print "BAD-SELF:" x; next }
+    if (expc=="none" && want=="none") { print "OKROW " x; next }
+    m1=split(expc, e1, ","); m2=split(want, e2, ",")
+    if (m1!=m2) { print "BAD-LEN:" x; next }
+    for (i=1;i<=m1;i++) if (index("," want ",", "," e1[i] ",")==0) { print "BAD-MISS:" x; next }
+    print "OKROW " x
+  }' "$fmadj" - 2>&1)
+nokr=$(grep -c '^OKROW ' <<<"$cloerr"); [[ "$nokr" =~ ^[0-9]+$ ]] || nokr=0
+nbad=$(grep -cv '^OKROW ' <<<"$cloerr"); [[ "$nbad" =~ ^[0-9]+$ ]] || nbad=0
+{ [ "$nokr" -eq "$ncap" ] && [ "$nbad" -eq 0 ]; } \
+  && ok "closure column is the fixed point of frontmatter requires ($nokr rows witnessed, irreflexive)" \
+  || no "closure check broken or wrong: witnessed=$nokr/$ncap other-lines=$nbad $(grep -v '^OKROW ' <<<"$cloerr" | head -2 | tr '\n' ' ')"
+if scripts/build-index.sh --check >/dev/null 2>&1; then
+  ok "generated index is current (build-index --check clean)"
+else
+  no "index DRIFTED from frontmatter (build-index --check)"
+fi
+cvals=$(grep -oE '\*\*[0-9]+ capabilities\*\*' README.md | grep -oE '[0-9]+' | sort -u)
+cvn=$(grep -c . <<<"$cvals"); [[ "$cvn" =~ ^[0-9]+$ ]] || cvn=0
+{ [ "$cvn" -eq 1 ] && [ "$cvals" = "$ncap" ]; } \
+  && ok "README capabilities bound every-occurrence ($cvals == index $ncap)" \
+  || no "README capabilities binding broken: [$(tr '\n' ' ' <<<"$cvals")] vs index $ncap"
+pb=$(mktemp)
+awk 'BEGIN{skip=0} /^# PULL-INDEX v1$/{print; skip=1; next} skip&&/^```/{skip=0} skip{next} {print}' "$IDX" > "$pb"
+pcap=$(awk '/^# PULL-INDEX v1$/{f=1;next} f&&/^```/{exit} f&&NF' "$pb")
+pn=$(grep -c . <<<"$pcap"); [[ "$pn" =~ ^[0-9]+$ ]] || pn=0
+[ "$pn" -lt "$bcount" ] && ok "control fires: an emptied capability block reads as vacuous ($pn rows)" \
+  || no "emptied-block control DID NOT fire ($pn rows)"
+pe=$(mktemp)
+awk -F'\t' 'BEGIN{OFS="\t"; inb=0; donep=0} /^# PULL-EDGES v1$/{print; inb=1; next} inb&&/^```/{inb=0} inb&&!donep&&NF==2&&$2!="none"{$2="none"; donep=1} {print}' "$IDX" > "$pe"
+pedge=$(awk '/^# PULL-EDGES v1$/{f=1;next} f&&/^```/{exit} f&&NF' "$pe" | sort)
+[ "$pedge" != "$fadj" ] && ok "control fires: a dropped edge breaks adjacency set-equality" \
+  || no "dropped-edge control DID NOT fire"
+rm -f "$pb" "$pe" "$fmpairs" "$fmadj"
 
 echo "== D. hygiene =="
 abshits=$(git ls-files -z | xargs -0 grep -lF -- "$ABS" 2>/dev/null)
@@ -83,6 +237,22 @@ chk_provenance tests/fixtures/bad-no-why.md \
   && ok "isolation: fixture 1 fails ONLY structure" || no "fixture 1 leaks into provenance"
 chk_sections tests/fixtures/bad-provenance.md \
   && ok "isolation: fixture 2 fails ONLY provenance" || no "fixture 2 leaks into structure"
+[ -f tests/fixtures/bad-frontmatter.md ] && ok "fixture exists: tests/fixtures/bad-frontmatter.md" \
+  || no "fixture MISSING (controls would be vacuous): tests/fixtures/bad-frontmatter.md"
+if fmmsg=$(chk_frontmatter tests/fixtures/bad-frontmatter.md bad-frontmatter); then
+  no "control DID NOT fire: broken frontmatter accepted"
+else
+  case "$fmmsg" in *no-defect-class*) ok "control fires: missing defect_class caught" ;; \
+    *) no "frontmatter control missed the absent class:$fmmsg" ;; esac
+  case "$fmmsg" in *"triggers<3"*) ok "control fires: thin trigger list caught" ;; \
+    *) no "frontmatter control missed thin triggers:$fmmsg" ;; esac
+  case "$fmmsg" in *requires-missing:ghost-blueprint*) ok "control fires: phantom requires caught" ;; \
+    *) no "frontmatter control missed the phantom edge:$fmmsg" ;; esac
+fi
+chk_sections tests/fixtures/bad-frontmatter.md \
+  && ok "isolation: frontmatter fixture passes structure" || no "frontmatter fixture leaks into structure"
+chk_provenance tests/fixtures/bad-frontmatter.md \
+  && ok "isolation: frontmatter fixture passes provenance" || no "frontmatter fixture leaks into provenance"
 
 
 # S0-RECONCILE — the explainer-epoch discipline, ported from the parent with ONE DECLARED

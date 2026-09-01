@@ -1,3 +1,11 @@
+---
+id: count-binding
+defect_class: unbound-figure-drift
+triggers: a readme states a number the repo can recompute; totals are quoted in more than one doc; a figure sat stale across sessions
+requires: negative-control
+proven_in: psychic-crew, psychic-crew-lite, psychic-templates, psychic-sidekick, psychic-plugins
+---
+
 # count-binding — documented figures equal live totals, mechanically
 
 ## What

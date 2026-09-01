@@ -1,3 +1,11 @@
+---
+id: vendored-vocabulary
+defect_class: brittle-or-silent-coupling
+triggers: one repo consumes a sibling repo field list; the sibling checkout may be absent at run time; a sync check must never hard-depend on a sibling
+requires: negative-control
+proven_in: psychic-sidekick, psychic-templates, psychic-crew-lite
+---
+
 # vendored-vocabulary — declared coupling with a conditional sync check
 
 ## What

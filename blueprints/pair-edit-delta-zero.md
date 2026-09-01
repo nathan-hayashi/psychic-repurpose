@@ -1,3 +1,11 @@
+---
+id: pair-edit-delta-zero
+defect_class: dual-doc-divergence
+triggers: two documents describe one structure; a map and its territory are edited separately; a section count appears in two files
+requires: count-binding
+proven_in: psychic-crew
+---
+
 # pair-edit-delta-zero — a byte-pinned source and its generated twin move together
 
 ## What
